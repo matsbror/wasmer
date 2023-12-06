@@ -15,6 +15,10 @@ use crate::commands::{
 use crate::commands::{CreateObj, GenCHeader};
 use crate::error::PrettyError;
 use clap::{CommandFactory, Parser};
+use std::env;
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::time::SystemTime;
 use wasmer_edge_cli::cmd::CliCommand;
 
 /// The main function for the Wasmer CLI tool.
@@ -27,6 +31,31 @@ pub fn wasmer_main() {
 }
 
 fn wasmer_main_inner() -> Result<(), anyhow::Error> {
+    // find out which benchmark we are running
+    let bmark = match env::var("WABENCHMARK") {
+        Ok(s) => s,
+        Err(_) => String::from("unknown"),
+    };
+
+    let ts = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(n) => n.as_micros(),
+        Err(_) => panic!("Cannot get timestamp"),
+    };
+
+    let filename = env::var("WABENCH_FILE");
+    match filename {
+        Ok(f) => {
+            let mut file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .append(true)
+                .open(f)
+                .unwrap();
+            writeln!(file, "WABENCH, {}, Wasmer start, timestamp, {}", bmark, ts)?;
+        }
+        Err(_) => println!("WABENCH, {}, Wasmer start, timestamp, {}", bmark, ts),
+    };
+
     if is_binfmt_interpreter() {
         Run::from_binfmt_args().execute(crate::logging::Output::default());
     }
