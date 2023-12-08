@@ -37,6 +37,12 @@ fn wasmer_main_inner() -> Result<(), anyhow::Error> {
         Err(_) => String::from("unknown"),
     };
 
+    // find out os_architecture
+    let hosttype = match env::var("HOSTTYPE") {
+        Ok(s) => s,
+        Err(_) => String::from("unknown"),
+    };
+
     let ts = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => n.as_micros(),
         Err(_) => panic!("Cannot get timestamp"),
@@ -51,9 +57,18 @@ fn wasmer_main_inner() -> Result<(), anyhow::Error> {
                 .append(true)
                 .open(f)
                 .unwrap();
-            writeln!(file, "WABENCH, {}, Wasmer start, timestamp, {}", bmark, ts)?;
+            write!(
+                file,
+                "{}, wasmer, {}, starting, timestamp, {}\n",
+                hosttype, bmark, ts
+            )?;
         }
-        Err(_) => println!("WABENCH, {}, Wasmer start, timestamp, {}", bmark, ts),
+        Err(_) => {
+            println!(
+                "{}, wasmer, {}, starting, timestamp, {}",
+                hosttype, bmark, ts
+            );
+        }
     };
 
     if is_binfmt_interpreter() {
